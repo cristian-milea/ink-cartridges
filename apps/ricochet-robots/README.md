@@ -361,9 +361,9 @@ changing the cartridge:
 
 ```
 python3 build_index.py            # regenerate index.json from manifests
-git -C ~/projects/ink-cartridges add -A
-git -C ~/projects/ink-cartridges commit -m "..."
-git -C ~/projects/ink-cartridges push
+git add -A
+git commit -m "..."
+git push
 ```
 
 CI (`.github/workflows/index.yml`) runs `build_index.py --check` and fails if
