@@ -39,10 +39,15 @@ regenerate the index.
 
 The catalog/index contract (index shape, validation, URL resolution) and the
 cartridge UI contract (manifest fields, widget vocabulary, the `data_source`
-block, secret-slug namespacing, the auto-SyncCard convention) are defined in
-schema docs kept in the upstream repos — see `CLAUDE.local.md` for their
-location. For a working reference, copy an existing cartridge under `apps/`
-(start from `apps/hello`, the minimal example).
+block, secret-slug namespacing, the auto-SyncCard convention) are vendored
+publicly under `docs/`:
+
+- `docs/ink-cartridge-catalog-schema.md` — index/catalog contract.
+- `docs/ink-cartridge-ui-schema.md` — cartridge (manifest + `ui.json`) contract.
+
+These are scrubbed copies of the upstream schema docs (`CLAUDE.local.md` has the
+upstream location). For a working reference, copy an existing cartridge under
+`apps/` (start from `apps/hello`, the minimal example).
 
 ## Conventions
 

@@ -180,8 +180,13 @@ from the manifests, never hand-edited.
 CI runs `build_index.py --check` and fails the PR if `index.json` is stale, so
 don't forget step 3. v1 is maintainer-curated — PRs are welcome and reviewed.
 
-See [`CLAUDE.md`](CLAUDE.md) for the repo's conventions (file-stem vs. manifest
-naming, version bumping, the manifest/index split).
+**Full guides:**
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — the step-by-step + conventions.
+- [`docs/ink-cartridge-ui-schema.md`](docs/ink-cartridge-ui-schema.md) — the
+  cartridge contract: manifest fields, the `ui.json` widget vocabulary, actions,
+  `data_source`, secrets, `published_state()`.
+- [`docs/ink-cartridge-catalog-schema.md`](docs/ink-cartridge-catalog-schema.md)
+  — the index/catalog contract.
 
 ## How it works
 
