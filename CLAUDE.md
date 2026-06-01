@@ -4,15 +4,23 @@
 
 The public curated catalog of installable Ink Cartridges. Three peer repos:
 
-- `~/projects/pwnagotchi/` — device-ops (the host plugin `ink-cartridge.py` lives here)
-- `~/projects/pwnagotchi-companion-app/` — Android companion (the Browse client)
+- `~/projects/pwnagotchi/` — private device-ops repo (`cristian-milea/pwnagotchi-buscar`).
+- `~/projects/ink-cartridge-app/` — Android + iOS companion (the Browse client),
+  proprietary/closed-source. Its `pwnagotchi-plugin/ink-cartridge/*.py` is the
+  **canonical upstream** of the host plugin's modular source.
 - **`~/projects/ink-cartridges/`** *(this repo)* — published to
-  `github.com/cristian-milea/ink-cartridges`; the companion app fetches
+  `github.com/cristian-milea/ink-cartridges` (public); the companion app fetches
   `https://raw.githubusercontent.com/cristian-milea/ink-cartridges/main/index.json`
   on Browse and downloads each entry's files for one-tap install.
 
 There are no built-in cartridges on the device any more — this catalog
 is the only source.
+
+This repo also vendors a **public, open-source copy of the host plugin** under
+`pwnagotchi-plugin/` (readable source in `src/` + a reproducible single-file
+build `ink-cartridge.py`, GPLv3) so users have a public, auditable place to get
+the plugin they must install. The mobile-app repo's plugin sources are the
+upstream; keep `pwnagotchi-plugin/src/` in sync when the plugin changes.
 
 ## Layout
 
