@@ -2,25 +2,23 @@
 
 ## What this is
 
-The public curated catalog of installable Ink Cartridges. Three peer repos:
+The public, curated catalog of installable Ink Cartridges — alternate-screen
+apps for a pwnagotchi's e-ink display. Published to
+`github.com/cristian-milea/ink-cartridges`; the companion app fetches
+`https://raw.githubusercontent.com/cristian-milea/ink-cartridges/main/index.json`
+on Browse and downloads each entry's files for one-tap install.
 
-- `~/projects/pwnagotchi/` — private device-ops repo (`cristian-milea/pwnagotchi-buscar`).
-- `~/projects/ink-cartridge-app/` — Android + iOS companion (the Browse client),
-  proprietary/closed-source. Its `pwnagotchi-plugin/ink-cartridge/*.py` is the
-  **canonical upstream** of the host plugin's modular source.
-- **`~/projects/ink-cartridges/`** *(this repo)* — published to
-  `github.com/cristian-milea/ink-cartridges` (public); the companion app fetches
-  `https://raw.githubusercontent.com/cristian-milea/ink-cartridges/main/index.json`
-  on Browse and downloads each entry's files for one-tap install.
-
-There are no built-in cartridges on the device any more — this catalog
-is the only source.
+There are no built-in cartridges on the device any more — this catalog is the
+only source.
 
 This repo also vendors a **public, open-source copy of the host plugin** under
 `pwnagotchi-plugin/` (readable source in `src/` + a reproducible single-file
 build `ink-cartridge.py`, GPLv3) so users have a public, auditable place to get
-the plugin they must install. The mobile-app repo's plugin sources are the
-upstream; keep `pwnagotchi-plugin/src/` in sync when the plugin changes.
+the plugin they must install. Keep `pwnagotchi-plugin/src/` in sync with its
+upstream and rebuild with `python3 pwnagotchi-plugin/build.py` when it changes.
+
+> Machine-specific details — peer-repo paths, the private upstream repos, and the
+> schema-doc locations — live in the git-ignored `CLAUDE.local.md`.
 
 ## Layout
 
@@ -37,12 +35,14 @@ manifests plus registry-only fields the script computes (`files.*`, `icon_url`,
 `size_bytes`, `updated_at`). This is the npm/registry model: edit the manifest,
 regenerate the index.
 
-Schema contract: `~/projects/pwnagotchi/ink-cartridge-catalog-schema.md`
-(index shape, validation rules, URL resolution).
+## Schema
 
-Cartridge contract: `~/projects/pwnagotchi/ink-cartridge-ui-schema.md`
-(manifest fields, widget vocabulary, `data_source` block, the secret-slug
-namespacing, the auto-SyncCard convention).
+The catalog/index contract (index shape, validation, URL resolution) and the
+cartridge UI contract (manifest fields, widget vocabulary, the `data_source`
+block, secret-slug namespacing, the auto-SyncCard convention) are defined in
+schema docs kept in the upstream repos — see `CLAUDE.local.md` for their
+location. For a working reference, copy an existing cartridge under `apps/`
+(start from `apps/hello`, the minimal example).
 
 ## Conventions
 
@@ -62,10 +62,10 @@ Regenerate the index, then commit. CI (`.github/workflows/index.yml`) runs
 `build_index.py --check` and fails if you forget.
 
 ```
-python3 build_index.py            # regenerate index.json from manifests
-git -C ~/projects/ink-cartridges add -A
-git -C ~/projects/ink-cartridges commit -m "<msg>"
-git -C ~/projects/ink-cartridges push
+python3 build_index.py     # regenerate index.json from manifests
+git add -A
+git commit -m "<msg>"
+git push
 ```
 
 raw.githubusercontent.com has a 5-minute CDN cache; the Browse screen
