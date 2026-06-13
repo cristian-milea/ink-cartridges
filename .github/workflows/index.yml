@@ -1,0 +1,29 @@
+name: ci
+
+# Catalog CI. Three guards, all on every push / PR:
+#   1. validate_cartridges.py — every cartridge in apps/ matches the contract
+#      (manifest fields, permission/category enums, semver, ui widget vocab,
+#      class<->manifest name+version, package size cap).
+#   2. pytest — the cartridge unit tests under tests/.
+#   3. build_index.py --check — index.json is regenerated from the manifests.
+#      The manifest is the source of truth; never hand-edit index.json.
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - name: Install test deps
+        run: python3 -m pip install --upgrade pytest pillow
+      - name: Validate cartridges
+        run: python3 validate_cartridges.py
+      - name: Run tests
+        run: python3 -m pytest -q
+      - name: Verify index.json is up to date
+        run: python3 build_index.py --check

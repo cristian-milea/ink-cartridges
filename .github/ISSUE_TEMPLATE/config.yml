@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/cristian-milea/ink-cartridges/security/advisories/new
+    about: Please report security issues privately — see SECURITY.md. Do not open a public issue.
+  - name: How to contribute a cartridge
+    url: https://github.com/cristian-milea/ink-cartridges/blob/main/CONTRIBUTING.md
+    about: Folder layout, the schema docs, and the PR flow.
