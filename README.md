@@ -159,8 +159,8 @@ That's it. From now on, the whole catalog is one tap away — no terminal in sig
 The Ink Cartridge companion app is the front-end for this catalog. It's **live
 now** on both stores:
 
-- **Android (Google Play)** — [Get it on Google Play](https://play.google.com/store/apps/details?id=io.github.cristianmilea.inkcartridgeapp)
-- **iOS / iPadOS (App Store)** — [Download on the App Store](https://apps.apple.com/us/app/ink-cartridge/id6774989679)
+<a href="https://apps.apple.com/us/app/ink-cartridge/id6774989679"><img src=".github/badges/app-store.svg" alt="Download on the App Store" height="42"></a>
+<a href="https://play.google.com/store/apps/details?id=io.github.cristianmilea.inkcartridgeapp"><img src=".github/badges/google-play.png" alt="Get it on Google Play" height="62"></a>
 
 The app is closed-source for now; the catalog and the host plugin in this repo
 are open.
