@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-01T23:37:39Z",
+  "updated_at": "2026-07-02T21:58:05Z",
   "apps": [
     {
       "name": "blackjack",
@@ -14,6 +14,7 @@
         "permissions": [],
         "secrets": []
       },
+      "min_app_version": "1.0",
       "files": {
         "py": "apps/blackjack/blackjack.py",
         "manifest": "apps/blackjack/blackjack.manifest.json",
@@ -33,6 +34,7 @@
         "permissions": [],
         "secrets": []
       },
+      "min_app_version": "1.0",
       "files": {
         "py": "apps/hello/hello.py",
         "manifest": "apps/hello/hello.manifest.json",
@@ -52,6 +54,7 @@
         "permissions": [],
         "secrets": []
       },
+      "min_app_version": "1.0",
       "files": {
         "py": "apps/magic8/magic8.py",
         "manifest": "apps/magic8/magic8.manifest.json",
@@ -71,12 +74,13 @@
         "permissions": [],
         "secrets": []
       },
+      "min_app_version": "1.1",
       "files": {
         "py": "apps/maze/maze.py",
         "manifest": "apps/maze/maze.manifest.json",
         "ui": "apps/maze/maze.ui.json"
       },
-      "size_bytes": 39688
+      "size_bytes": 39391
     },
     {
       "name": "ricochet-robots",
@@ -90,6 +94,7 @@
         "permissions": [],
         "secrets": []
       },
+      "min_app_version": "1.0",
       "files": {
         "py": "apps/ricochet-robots/ricochet_robots.py",
         "manifest": "apps/ricochet-robots/ricochet_robots.manifest.json",
@@ -118,6 +123,7 @@
           }
         ]
       },
+      "min_app_version": "1.0",
       "files": {
         "py": "apps/tide-sun/tide_sun.py",
         "manifest": "apps/tide-sun/tide_sun.manifest.json",
@@ -137,12 +143,13 @@
         "permissions": [],
         "secrets": []
       },
+      "min_app_version": "1.1",
       "files": {
         "py": "apps/vector-racing/vector_racing.py",
         "manifest": "apps/vector-racing/vector-racing.manifest.json",
         "ui": "apps/vector-racing/vector-racing.ui.json"
       },
-      "size_bytes": 41337
+      "size_bytes": 40632
     },
     {
       "name": "weather",
@@ -158,6 +165,7 @@
         ],
         "secrets": []
       },
+      "min_app_version": "1.0",
       "files": {
         "py": "apps/weather/weather.py",
         "manifest": "apps/weather/weather.manifest.json"

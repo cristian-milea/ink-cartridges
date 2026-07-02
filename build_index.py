@@ -22,6 +22,10 @@ from datetime import datetime, timezone
 INDEX_PATH = "index.json"
 INDEX_SCHEMA_VERSION = 1
 
+# Minimum app version required to render a cartridge's ui.json, keyed by the
+# manifest's schema_version. A manifest with no schema_version defaults to 1.
+SCHEMA_MIN_APP_VERSION = {1: "1.0", 2: "1.1"}
+
 # Fields copied verbatim from the manifest into the index entry (when present).
 CANONICAL_FIELDS = (
     "name", "icon", "version", "author", "description",
@@ -63,6 +67,16 @@ def _entry_for(manifest_path):
         "permissions": req.get("permissions") or [],
         "secrets": req.get("secrets") or [],
     }
+
+    # min_app_version: explicit manifest field wins; otherwise derive it from
+    # schema_version via SCHEMA_MIN_APP_VERSION (falls back to the table's
+    # highest known entry if schema_version isn't a known key).
+    min_app_version = manifest.get("min_app_version")
+    if min_app_version is None:
+        schema_version = manifest.get("schema_version", 1)
+        min_app_version = SCHEMA_MIN_APP_VERSION.get(
+            schema_version, SCHEMA_MIN_APP_VERSION[max(SCHEMA_MIN_APP_VERSION)])
+    entry["min_app_version"] = min_app_version
 
     files = {"py": py, "manifest": manifest_path}
     if uis:

@@ -67,7 +67,11 @@ cartridge. The catalog `index.json` is *generated* from it (see
   },
 
   // Optional. Bumps when the schema this manifest targets changes.
-  "schema_version": 1
+  "schema_version": 1,
+
+  // Optional. Explicit floor on the companion app version required to render
+  // this cartridge's ui.json. See "schema_version → min_app_version" below.
+  "min_app_version": "1.1"
 }
 ```
 
@@ -91,6 +95,27 @@ accepted):
 | `label`       | yes      | Player-facing name shown in the settings list and edit dialog.     |
 | `description` | no       | One-line explanation shown in the edit dialog.                     |
 | `optional`    | no       | Default `false`. When `false`, **activation is blocked** until the player sets a value, and the launcher tile shows a CONFIG action instead of PLUG IN. When `true`, the cartridge runs without it (`{{secret.<key>}}` resolves to empty). |
+
+### schema_version → min_app_version
+
+Each `schema_version` a manifest can declare corresponds to a minimum
+companion-app version able to render it — new widget types are invisible to
+older app builds (the parser degrades an unknown `"type"` to `.unknown`), so
+"which widgets exist" is decided by the phone's app version, not the device.
+`build_index.py` stamps this table's value into each catalog entry's
+`min_app_version` (unless the manifest sets `min_app_version` explicitly,
+which always wins):
+
+| `schema_version` | `min_app_version` | Introduced                    |
+| ----------------- | ------------------ | ------------------------------ |
+| `1`                | `1.0`               | Initial widget set (no `dpad`) |
+| `2`                | `1.1`               | `dpad` widget                  |
+
+A cartridge with no `schema_version` defaults to `1` → `1.0`. The companion
+app compares its own `BuildConfig.VERSION_NAME` (Android) /
+`CFBundleShortVersionString` (iOS) against `min_app_version` as a `>=` floor:
+an app too old to render the cartridge shows "Update the app (needs vX+)"
+and blocks install/activate instead of drawing a broken UI.
 
 **Storage namespacing (the slug).** The player never types a storage key — they
 reference the bare `{{secret.<key>}}`. The phone namespaces each secret by the
@@ -149,6 +174,7 @@ with a `"type"` field plus type-specific fields.
 | `text_field`   | `local`, `label`                      | `default`, `kind` (`text`/`number`)      |
 | `select`       | `local`, `options: [{value,label}]`   | `default`, `label`                       |
 | `when`         | `if` (JsonLogic rule), `then` (node or `[]`) | `else` (node or `[]`)             |
+| `dpad`         | at least one of `vertical`/`horizontal`/`diagonal`, `actions` (direction → action) | `center` (action) — requires `schema_version: 2` / `min_app_version: 1.1` |
 
 Template strings (`value`, `label`, `format`, `payload` leaf values, and the
 `data_source.url`) accept `{{state.X}}`, `{{local.X}}`, `{{secret.X}}`, and
@@ -208,6 +234,43 @@ and POSTs to `/plugins/ink-cartridge/push` with the standard CSRF flow.
 It reads the app's manifest `data_source`, fetches the URL, and pushes the
 envelope `{"location": {...}|null, "fetched": <body>}`. See **Data sources**
 below.
+
+### The `dpad` widget
+
+A large swipe surface for directional input — a first-class alternative to
+faking a D-pad out of `row`/`column`/`button` (the pattern `maze` and
+`vector-racing` used before migrating to this widget). **Requires
+`schema_version: 2` / `min_app_version: "1.1"`** — see the table above.
+
+```json
+{ "type": "dpad", "vertical": true, "horizontal": true, "diagonal": false,
+  "actions": {
+    "up":    { "type": "push", "payload": { "action": "forward" } },
+    "down":  { "type": "push", "payload": { "action": "back" } },
+    "left":  { "type": "push", "payload": { "action": "turn_left" } },
+    "right": { "type": "push", "payload": { "action": "turn_right" } }
+  } }
+```
+
+Fields:
+- **Axis booleans** `vertical` / `horizontal` / `diagonal` (each default
+  `false`) enable the 4/8-way directions the pad recognises. **At least one
+  must be `true`** — a `dpad` with all three false (or omitted) fails
+  validation and degrades to `Unknown`, same as any malformed node.
+- **`actions`** — an object keyed by direction (`up`, `down`, `left`, `right`,
+  `up_left`, `up_right`, `down_left`, `down_right`), each value a normal
+  action (usually `push`). Only directions whose axis is enabled *and* that
+  have a binding actually fire; a key outside the eight names is invalid.
+  Device payloads are unchanged from the button-based era — the widget
+  changes only how the player *sends* the same action.
+- **`center`** *(optional)* — a single action fired on a tap (a gesture below
+  the swipe threshold, not a swipe). No binding → taps are ignored. Used by
+  `vector-racing` for its "coast" (zero acceleration).
+- **Swipe-to-fire:** the player swipes in a direction; the phone classifies
+  the gesture into the nearest *enabled* direction (4-way or 8-way sectors
+  depending on the axis flags) and fires that direction's action once per
+  swipe. The pad persists the last-sent arrow (large, with a "sent" mark)
+  until the next gesture, so it's usable without looking at the phone.
 
 ## Data sources — declarative fetch
 

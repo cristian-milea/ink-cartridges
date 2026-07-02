@@ -13,30 +13,18 @@
         { "type": "text", "style": "caption",
           "value": "Each tap adds to your velocity. Centre = coast (no change)." },
 
-        { "type": "row", "spacing": 8, "align": "center", "children": [
-          { "type": "button", "label": "↖", "style": "secondary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": -1, "dy": -1 } } },
-          { "type": "button", "label": "↑", "style": "secondary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": 0, "dy": -1 } } },
-          { "type": "button", "label": "↗", "style": "secondary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": 1, "dy": -1 } } }
-        ] },
-        { "type": "row", "spacing": 8, "align": "center", "children": [
-          { "type": "button", "label": "←", "style": "secondary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": -1, "dy": 0 } } },
-          { "type": "button", "label": "coast", "style": "primary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": 0, "dy": 0 } } },
-          { "type": "button", "label": "→", "style": "secondary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": 1, "dy": 0 } } }
-        ] },
-        { "type": "row", "spacing": 8, "align": "center", "children": [
-          { "type": "button", "label": "↙", "style": "secondary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": -1, "dy": 1 } } },
-          { "type": "button", "label": "↓", "style": "secondary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": 0, "dy": 1 } } },
-          { "type": "button", "label": "↘", "style": "secondary",
-            "action": { "type": "push", "payload": { "action": "accel", "dx": 1, "dy": 1 } } }
-        ] },
+        { "type": "dpad", "vertical": true, "horizontal": true, "diagonal": true,
+          "actions": {
+            "up":         { "type": "push", "payload": { "action": "accel", "dx": 0, "dy": -1 } },
+            "down":       { "type": "push", "payload": { "action": "accel", "dx": 0, "dy": 1 } },
+            "left":       { "type": "push", "payload": { "action": "accel", "dx": -1, "dy": 0 } },
+            "right":      { "type": "push", "payload": { "action": "accel", "dx": 1, "dy": 0 } },
+            "up_left":    { "type": "push", "payload": { "action": "accel", "dx": -1, "dy": -1 } },
+            "up_right":   { "type": "push", "payload": { "action": "accel", "dx": 1, "dy": -1 } },
+            "down_left":  { "type": "push", "payload": { "action": "accel", "dx": -1, "dy": 1 } },
+            "down_right": { "type": "push", "payload": { "action": "accel", "dx": 1, "dy": 1 } }
+          },
+          "center": { "type": "push", "payload": { "action": "accel", "dx": 0, "dy": 0 } } },
 
         { "type": "divider" },
 
