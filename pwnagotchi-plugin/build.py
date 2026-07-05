@@ -21,12 +21,19 @@ verify it matches the source.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import re
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR = os.path.join(HERE, "src")
 OUT = os.path.join(HERE, "ink-cartridge.py")
+# Update manifest the app fetches to detect an outdated on-device plugin and to
+# verify the bytes it downloads. version + sha256 + bytes are auto-stamped from
+# the built bundle; any other keys (e.g. "notes") are preserved across builds.
+PLUGIN_JSON = os.path.join(HERE, "plugin.json")
 
 # Dependency order. host_alias before apps (apps imports its helpers);
 # registry before plugin; plugin last.
@@ -180,7 +187,7 @@ def _artifact_passes_gate(path: str) -> bool:
         "                         get_options=lambda: {}, toggle_plugin=lambda n, e: e)\n"
         "expected = {'status','pcap.get','game-over','state','manifest','ui',\n"
         "            'activate','deactivate','install','uninstall','push',\n"
-        "            'reboot','shutdown','restart','plugin.toggle',\n"
+        "            'reboot','shutdown','restart','plugin.toggle','plugin.update',\n"
         "            'display.png','plugins.list','stats.session',\n"
         "            'stats.os','stats.temp','stats.wifi'}\n"
         "assert {c for c in expected if reg.has(c)} == expected\n"
@@ -191,15 +198,70 @@ def _artifact_passes_gate(path: str) -> bool:
     return r.returncode == 0
 
 
+def _plugin_version() -> str:
+    """The single source of truth: PLUGIN_VERSION in src/plugin.py."""
+    src = open(os.path.join(SRC_DIR, "plugin.py"), encoding="utf-8").read()
+    m = re.search(r'^PLUGIN_VERSION\s*=\s*"([^"]+)"', src, flags=re.MULTILINE)
+    if not m:
+        raise SystemExit("PLUGIN_VERSION not found in src/plugin.py")
+    return m.group(1)
+
+
+def _stamp_from_bundle(bundle_bytes: bytes) -> dict:
+    """The auto-stamped fields of plugin.json for a given bundle."""
+    return {
+        "version": _plugin_version(),
+        "sha256": hashlib.sha256(bundle_bytes).hexdigest(),
+        "bytes": len(bundle_bytes),
+    }
+
+
+def _read_plugin_json() -> dict:
+    try:
+        with open(PLUGIN_JSON, encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+
+def _write_plugin_json(bundle_bytes: bytes) -> None:
+    """Stamp version/sha256/bytes from the bundle, preserving any other keys."""
+    data = _read_plugin_json()
+    data.update(_stamp_from_bundle(bundle_bytes))
+    with open(PLUGIN_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+
+
 def build() -> str:
     bundle = build_inline()
     with open(OUT, "w", encoding="utf-8") as f:
         f.write(bundle)
     if not _artifact_passes_gate(OUT):
         raise SystemExit("build gate FAILED: bundle does not import cleanly")
+    _write_plugin_json(bundle.encode("utf-8"))
     return OUT
 
 
+def check() -> bool:
+    """Return True iff the committed ink-cartridge.py and plugin.json are in
+    sync with src/ (CI guard — no writes). Mirrors build_index.py --check."""
+    fresh = build_inline()
+    committed = open(OUT, encoding="utf-8").read() if os.path.exists(OUT) else ""
+    if fresh != committed:
+        print("ink-cartridge.py is STALE — run `python3 build.py`")
+        return False
+    want = _stamp_from_bundle(fresh.encode("utf-8"))
+    have = _read_plugin_json()
+    drift = {k: (have.get(k), v) for k, v in want.items() if have.get(k) != v}
+    if drift:
+        print(f"plugin.json is STALE — run `python3 build.py` (drift: {drift})")
+        return False
+    return True
+
+
 if __name__ == "__main__":
+    if "--check" in sys.argv:
+        raise SystemExit(0 if check() else 1)
     out = build()
-    print(f"built {out} (readable, gate passed)")
+    print(f"built {out} (readable, gate passed); stamped {os.path.basename(PLUGIN_JSON)}")

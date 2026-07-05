@@ -459,7 +459,7 @@ def _collect_handshakes(handshake_dir, cracked_map, db_path,
 # Payload assembly — used by the status handler and directly in tests
 # ---------------------------------------------------------------------------
 
-def _build_payload(agent, options):
+def _build_payload(agent, options, plugin_version=None):
     """Assemble the full status payload dict.  Each field has its own try/except.
 
     `options` is the plugin's options dict (handshake_dir, bt_iface, wpa_sec_db,
@@ -529,6 +529,7 @@ def _build_payload(agent, options):
 
     return {
         "schema_version": 1,
+        "plugin_version": plugin_version,
         "generated_at": datetime.now(tz=timezone.utc).isoformat(),
         "battery": battery,
         "mode": mode,
@@ -673,19 +674,21 @@ def render_and_show_game_over(ui, text, font_size=GAME_OVER_FONT_SIZE):
 # shared command registry (HTTP webhook + RFCOMM).
 # ---------------------------------------------------------------------------
 
-def make_handlers(get_agent, get_ui, get_options=None):
+def make_handlers(get_agent, get_ui, get_options=None, plugin_version=None):
     """Return {command_name: handler} bound to live agent/ui/options accessors.
 
     get_agent():   returns the live pwnagotchi agent (or None).
     get_ui():      returns the live UI View (or None).
     get_options(): returns the plugin options dict; defaults to an empty dict
                    so the module constants supply every value.
+    plugin_version: the host plugin's version string, surfaced in `status` so
+                   the app can detect an outdated on-device plugin.
     """
     if get_options is None:
         get_options = lambda: {}
 
     def status(_args):
-        return _build_payload(get_agent(), get_options())
+        return _build_payload(get_agent(), get_options(), plugin_version)
 
     def pcap_get(args):
         import base64

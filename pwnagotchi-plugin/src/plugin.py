@@ -37,19 +37,26 @@ except Exception:
         pass
 
 
+# Single source of truth for the host plugin's version. Surfaced in `status`
+# (so the app can flag an outdated on-device plugin) and used as the class
+# __version__ pwnagotchi reads. BUMP THIS on every plugin release.
+PLUGIN_VERSION = "0.2.0"
+
+
 def build_registry(get_agent, get_ui, runtime, get_options=None, toggle_plugin=None) -> CommandRegistry:
     """Register all handler groups into one CommandRegistry.
 
-    Registers (21 commands total):
+    Registers (22 commands total):
       telemetry: status, pcap.get, game-over
       apps:      state, manifest, ui, activate, deactivate, install,
                  uninstall, push
-      controls:  reboot, shutdown, restart, plugin.toggle
+      controls:  reboot, shutdown, restart, plugin.toggle, plugin.update
       proxy:     display.png, plugins.list, stats.session, stats.os,
                  stats.temp, stats.wifi
     """
     reg = CommandRegistry()
-    for name, handler in telemetry.make_handlers(get_agent, get_ui, get_options).items():
+    for name, handler in telemetry.make_handlers(
+            get_agent, get_ui, get_options, plugin_version=PLUGIN_VERSION).items():
         reg.register(name, handler)
     for name, handler in apps.make_handlers(runtime).items():
         reg.register(name, handler)
@@ -62,7 +69,7 @@ def build_registry(get_agent, get_ui, runtime, get_options=None, toggle_plugin=N
 
 class InkCartridge(_Base):
     __author__ = "cristianmilea"
-    __version__ = "0.1.0"
+    __version__ = PLUGIN_VERSION
     __license__ = "GPL3"
     __description__ = "Companion app host: RFCOMM + HTTP over one command registry."
 
