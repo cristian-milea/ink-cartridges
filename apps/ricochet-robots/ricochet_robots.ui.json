@@ -21,18 +21,13 @@
         "action": { "type": "push", "payload": { "action": "select", "robot": "3" } } }
     ] },
 
-    { "type": "row", "spacing": 8, "align": "center", "children": [
-      { "type": "button", "label": "←", "style": "secondary",
-        "action": { "type": "push", "payload": { "action": "move", "dir": "left" } } },
-      { "type": "column", "spacing": 8, "children": [
-        { "type": "button", "label": "↑", "style": "primary",
-          "action": { "type": "push", "payload": { "action": "move", "dir": "up" } } },
-        { "type": "button", "label": "↓", "style": "secondary",
-          "action": { "type": "push", "payload": { "action": "move", "dir": "down" } } }
-      ] },
-      { "type": "button", "label": "→", "style": "secondary",
-        "action": { "type": "push", "payload": { "action": "move", "dir": "right" } } }
-    ] },
+    { "type": "dpad", "vertical": true, "horizontal": true,
+      "actions": {
+        "up":    { "type": "push", "payload": { "action": "move", "dir": "up" } },
+        "down":  { "type": "push", "payload": { "action": "move", "dir": "down" } },
+        "left":  { "type": "push", "payload": { "action": "move", "dir": "left" } },
+        "right": { "type": "push", "payload": { "action": "move", "dir": "right" } }
+      } },
 
     { "type": "row", "spacing": 12, "children": [
       { "type": "button", "label": "Undo", "style": "secondary",

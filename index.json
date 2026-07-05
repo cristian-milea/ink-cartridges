@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-07-02T21:58:05Z",
+  "updated_at": "2026-07-05T22:05:12Z",
   "apps": [
     {
       "name": "blackjack",
@@ -94,13 +94,13 @@
         "permissions": [],
         "secrets": []
       },
-      "min_app_version": "1.0",
+      "min_app_version": "1.1",
       "files": {
         "py": "apps/ricochet-robots/ricochet_robots.py",
         "manifest": "apps/ricochet-robots/ricochet_robots.manifest.json",
         "ui": "apps/ricochet-robots/ricochet_robots.ui.json"
       },
-      "size_bytes": 37909
+      "size_bytes": 37612
     },
     {
       "name": "tide-sun",
