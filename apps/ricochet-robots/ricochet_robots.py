@@ -508,7 +508,7 @@ def _save_state(path, state):
 class RicochetRobots:
     name = "ricochet-robots"
     icon = "RR"
-    version = "1.0.2"
+    version = "1.0.3"
     interval_seconds = None
 
     def __init__(self):

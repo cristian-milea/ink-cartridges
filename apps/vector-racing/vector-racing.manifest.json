@@ -1,7 +1,7 @@
 {
   "name": "vector-racing",
   "icon": "VR",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "cristian-milea",
   "description": "Turn-based vector racing. 9-way pad on the phone, circuit on the e-ink.",
   "category": "games",
