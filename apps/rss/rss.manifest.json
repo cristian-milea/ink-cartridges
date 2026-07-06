@@ -1,0 +1,31 @@
+{
+  "name": "rss",
+  "icon": "RS",
+  "version": "1.0.0",
+  "author": "cristian-milea",
+  "description": "Latest headlines from any RSS or Atom feed.",
+  "category": "reference",
+  "long_description": "Reads any RSS or Atom feed directly — no third-party proxy — and shows the latest headlines on the e-ink. Prefer an https feed URL; some hosts block requests without a browser-like User-Agent. Choose a vertical or horizontal headline layout from the phone. Feeds that embed full article bodies can be large (~1 MB) and may sync slowly over Bluetooth — a lightweight headlines-only feed works best.",
+  "requires": {
+    "permissions": [],
+    "secrets": [
+      {
+        "key": "feed",
+        "label": "Feed URL",
+        "description": "RSS or Atom feed address, e.g. https://site.com/feed/",
+        "optional": false
+      }
+    ]
+  },
+  "data_source": {
+    "type": "http",
+    "method": "GET",
+    "url": "{{secret.feed}}",
+    "format": "xml",
+    "needs": [
+      "secret:feed"
+    ],
+    "min_sync_seconds": 600
+  },
+  "schema_version": 1
+}

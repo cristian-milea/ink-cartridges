@@ -1,6 +1,6 @@
 {
   "notes": "Accept newer UI schema_versions (fixes dpad install); surface plugin_version in status; support over-BT self-update from the app.",
   "version": "0.2.0",
-  "sha256": "667613f29074ba03865e16bc99e99cd03c6f6a8031c6a74619415dc76e6bdb92",
-  "bytes": 107258
+  "sha256": "9c70b43be91bfea31e9b04e5aab0808882e9b6e952bc2aaedfbab5e2a7580f68",
+  "bytes": 107497
 }
