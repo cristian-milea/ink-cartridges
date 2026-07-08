@@ -34,6 +34,10 @@ ATOM_NS = "{http://www.w3.org/2005/Atom}"
 MAX_FETCHED_BYTES = 2_000_000
 MAX_ITEMS = 5
 
+# How many headlines each layout shows (see render()).
+ROW_ITEMS = 3     # horizontal/rows: stacked, 1px rule between each
+COL_ITEMS = 3     # vertical/columns: side-by-side, 1px rule between each
+
 LAYOUT_SIDECAR = os.path.join(os.path.expanduser("~"), ".ink-cartridge-rss-layout")
 
 
@@ -158,21 +162,37 @@ class Rss:
                          body_font, w - 8)
             return
 
-        y = content_top
-        if self._orientation == "horizontal":
-            # self._items is already capped at MAX_ITEMS by _parse_feed.
-            for item in self._items:
-                title = item.get("title") or ""
-                lw = draw.textlength(title, font=body_font)
-                if lw > w - 8:
-                    while title and draw.textlength(title + "…", font=body_font) > w - 8:
-                        title = title[:-1]
-                    title += "…"
-                draw.text((4, y), title, font=body_font, fill=0)
-                ascent, descent = body_font.getmetrics()
-                y += ascent + descent + 2
+        if self._orientation == "vertical":
+            self._render_columns(draw, body_font, content_top, w, h)
         else:
-            for item in self._items[:3]:
-                title = item.get("title") or ""
-                y = draw_wrapped(draw, (4, y), title, body_font, w - 8)
-                y += 2
+            self._render_rows(draw, body_font, content_top, w, h)
+
+    def _render_rows(self, draw, font, top, w, h):
+        # horizontal/rows: headlines stacked top-to-bottom, each wrapped, with a
+        # 1px horizontal rule between consecutive articles.
+        items = self._items[:ROW_ITEMS]
+        y = top
+        for i, item in enumerate(items):
+            title = item.get("title") or ""
+            y = draw_wrapped(draw, (4, y), title, font, w - 8)
+            if i < len(items) - 1:
+                y += 3
+                draw.line((4, y, w - 4, y), fill=0)
+                y += 4
+            if y >= h:
+                break
+
+    def _render_columns(self, draw, font, top, w, h):
+        # vertical/columns: headlines side-by-side in equal columns, each wrapped
+        # to its column width, with a 1px vertical rule between columns.
+        items = self._items[:COL_ITEMS]
+        n = len(items)
+        col_w = (w - 8) // n
+        for i, item in enumerate(items):
+            x = 4 + i * col_w
+            title = item.get("title") or ""
+            # +2 gutter keeps text off the divider rule
+            draw_wrapped(draw, (x + 2, top), title, font, col_w - 6)
+            if i < n - 1:
+                rule_x = x + col_w
+                draw.line((rule_x, top, rule_x, h - 2), fill=0)

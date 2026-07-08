@@ -9,8 +9,8 @@
     { "type": "select", "local": "orientation", "label": "Layout",
       "default": "vertical",
       "options": [
-        { "value": "vertical",   "label": "Vertical" },
-        { "value": "horizontal", "label": "Horizontal" }
+        { "value": "vertical",   "label": "Columns (vertical rules)" },
+        { "value": "horizontal", "label": "Rows (horizontal rules)" }
       ]
     },
     { "type": "button", "label": "Apply layout", "style": "primary",
