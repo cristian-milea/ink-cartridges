@@ -1,4 +1,4 @@
-# RSS / Atom headline reader.
+# RSS / Atom headline reader with paginated auto-scroll.
 #
 # Sync envelope (from the phone, via manifest data_source with format:"xml"):
 #   {"location": null, "fetched": <raw feed XML as a STRING> | null}
@@ -6,56 +6,82 @@
 # it hands over the raw response body and this file parses it on-device with
 # stdlib xml.etree.ElementTree. That keeps the companion app feed-agnostic.
 #
-# on_data receives two different shapes and must tell them apart by payload
-# keys, not by a fixed schema:
-#   - a *command* pushed by the ui.json select: {"action": "set_layout",
-#     "value": "vertical"|"horizontal"}
+# on_data receives two different shapes and tells them apart by payload keys,
+# not by a fixed schema:
+#   - a *config command* from the ui.json Apply button:
+#       {"action": "set_config", "orientation": "...", "scroll_seconds": "..."}
+#     (legacy "set_layout"/"set_scroll" single-field forms also accepted).
 #   - the *sync envelope* above (has "fetched", no "action").
 #
-# Orientation persistence caveat: the host only remembers the LAST payload it
-# pushed to an app and replays that single payload on reboot (there's no
-# per-app payload history). If we let the orientation command and the sync
-# envelope share that one slot, whichever happened last would clobber the
-# other on replay — a sync would forget the chosen layout, or a layout change
-# would forget the feed. So orientation is self-persisted to a small sidecar
-# file here, and feed items are treated as transient/refetched: on reboot the
-# replayed payload repopulates whichever of the two it happens to be, and the
-# other is either re-read from the sidecar (orientation) or re-synced from the
-# network (items) rather than assumed durable.
+# Display: the device holds every item from the feed (up to MAX_ITEMS) and
+# paginates through them a page at a time, auto-advancing every
+# `scroll_seconds` (0 = off). The host re-renders us on that cadence because we
+# expose `interval_seconds` (see the plugin's _active_interval). The current
+# page is derived from the wall clock, so any repaint (auto-tick, push, banner)
+# shows the page the elapsed time selects — no per-render mutation to get wrong.
+#
+# Settings persistence: the host only remembers the LAST payload it pushed per
+# app and replays that single slot on reboot, so we can't rely on it to hold
+# both the feed AND the chosen orientation/scroll. Orientation + scroll are
+# self-persisted to a small JSON sidecar here; feed items are transient
+# (re-synced from the network) — whichever the replayed payload happens to be
+# repopulates, the other is read from the sidecar.
 
+import json
 import os
+import time
 import xml.etree.ElementTree as ET
 
 from PIL import ImageFont
 
-from ink_cartridge_host import draw_wrapped
+from ink_cartridge_host import draw_wrapped, wrap_text
 
 ATOM_NS = "{http://www.w3.org/2005/Atom}"
 MAX_FETCHED_BYTES = 2_000_000
-MAX_ITEMS = 5
+MAX_ITEMS = 30            # hold a full feed page; the display paginates through them
 
-# How many headlines each layout shows (see render()).
-ROW_ITEMS = 3     # horizontal/rows: stacked, 1px rule between each
-COL_ITEMS = 3     # vertical/columns: side-by-side, 1px rule between each
+COLUMNS = 3               # side-by-side headlines per page in the columns layout
+ROW_MAX_LINES = 2         # cap each headline at 2 lines in the rows layout (#2)
+LINE_SPACING = -1         # tighten line height for density (#3)
 
-LAYOUT_SIDECAR = os.path.join(os.path.expanduser("~"), ".ink-cartridge-rss-layout")
+DEFAULT_SCROLL_SECONDS = 60
+SCROLL_CHOICES = (0, 30, 60, 120, 300)   # allowed auto-scroll periods (0 = off)
+
+SIDECAR = os.path.join(os.path.expanduser("~"), ".ink-cartridge-rss.json")
 
 
-def _load_orientation():
+def _load_settings():
+    orientation, scroll = "vertical", DEFAULT_SCROLL_SECONDS
     try:
-        with open(LAYOUT_SIDECAR, encoding="utf-8") as f:
-            value = f.read().strip()
+        with open(SIDECAR, encoding="utf-8") as f:
+            data = json.load(f)
     except Exception:
-        return "vertical"
-    return value if value in ("vertical", "horizontal") else "vertical"
+        return orientation, scroll
+    if isinstance(data, dict):
+        if data.get("orientation") in ("vertical", "horizontal"):
+            orientation = data["orientation"]
+        s = data.get("scroll_seconds")
+        if isinstance(s, int) and s in SCROLL_CHOICES:
+            scroll = s
+    return orientation, scroll
 
 
-def _save_orientation(value):
+def _save_settings(orientation, scroll):
     try:
-        with open(LAYOUT_SIDECAR, "w", encoding="utf-8") as f:
-            f.write(value)
+        with open(SIDECAR, "w", encoding="utf-8") as f:
+            json.dump({"orientation": orientation, "scroll_seconds": scroll}, f)
     except Exception:
         pass
+
+
+def _coerce_scroll(value):
+    """Accept an int or a numeric string; return it only if it's an allowed
+    choice, else None (caller leaves the current value untouched)."""
+    try:
+        s = int(value)
+    except (TypeError, ValueError):
+        return None
+    return s if s in SCROLL_CHOICES else None
 
 
 def _first_text(elem, tags):
@@ -103,31 +129,65 @@ def _parse_feed(xml_text):
     return None
 
 
+def _line_h(font):
+    ascent, descent = font.getmetrics()
+    return ascent + descent + LINE_SPACING
+
+
+def _wrap_capped(draw, text, font, max_w, max_lines):
+    """Wrap `text` to at most `max_lines` lines within `max_w` px, ellipsizing
+    the last line when content was dropped. Returns the list of lines."""
+    lines = wrap_text(text, max_w, draw, font)
+    if len(lines) <= max_lines:
+        return lines
+    kept = lines[:max_lines]
+    last = kept[-1]
+    while last and draw.textlength(last + "…", font=font) > max_w:
+        last = last[:-1]
+    kept[-1] = (last + "…") if last else "…"
+    return kept
+
+
+def _draw_lines(draw, x, y, lines, font):
+    lh = _line_h(font)
+    for line in lines:
+        draw.text((x, y), line, font=font, fill=0)
+        y += lh
+    return y
+
+
 class Rss:
     name = "rss"
     icon = "RS"
-    version = "1.0.0"
+    version = "1.1.0"
 
     def __init__(self):
         self._items = []
         self._feed_title = ""
-        self._orientation = _load_orientation()
+        orientation, scroll = _load_settings()
+        self._orientation = orientation
+        self._scroll_seconds = scroll
+        # Drives the host's repaint cadence for auto-scroll; None = push-driven.
+        self.interval_seconds = scroll or None
+        self._scroll_base = time.monotonic()
 
     def published_state(self):
+        # orientation/scroll_seconds are surfaced so the phone controls can
+        # pre-select the device's current values ({{state.x}} in ui.json).
+        # scroll_seconds is a string to match the select option values.
         return {
             "feed_title": self._feed_title,
             "item_count": len(self._items),
+            "orientation": self._orientation,
+            "scroll_seconds": str(self._scroll_seconds),
         }
 
     def on_data(self, payload):
         if not isinstance(payload, dict):
             return
 
-        if payload.get("action") == "set_layout":
-            value = payload.get("value")
-            if value in ("vertical", "horizontal"):
-                self._orientation = value
-                _save_orientation(value)
+        if payload.get("action") in ("set_config", "set_layout", "set_scroll"):
+            self._apply_config(payload)
             return
 
         # Sync envelope.
@@ -145,54 +205,105 @@ class Rss:
         title, items = parsed
         self._feed_title = title
         self._items = items
+        self._scroll_base = time.monotonic()   # restart paging at page 1 on fresh data
+
+    def _apply_config(self, payload):
+        changed = False
+
+        orientation = payload.get("orientation")
+        if orientation is None and payload.get("action") == "set_layout":
+            orientation = payload.get("value")   # legacy single-field form
+        if orientation in ("vertical", "horizontal"):
+            self._orientation = orientation
+            changed = True
+
+        raw_scroll = payload.get("scroll_seconds")
+        if raw_scroll is None and payload.get("action") == "set_scroll":
+            raw_scroll = payload.get("value")    # legacy single-field form
+        scroll = _coerce_scroll(raw_scroll)
+        if scroll is not None:
+            self._scroll_seconds = scroll
+            self.interval_seconds = scroll or None
+            changed = True
+
+        if changed:
+            self._scroll_base = time.monotonic()
+            _save_settings(self._orientation, self._scroll_seconds)
+
+    def _per_page(self, font, h):
+        if self._orientation == "vertical":
+            return COLUMNS
+        # rows: how many capped-height items fit below a one-line header.
+        lh = _line_h(font)
+        header_h = lh + 6                      # header line + underline + gaps
+        item_h = ROW_MAX_LINES * lh + 3        # 2 lines + (gap·rule·gap)
+        return max(1, (h - header_h) // item_h)
+
+    def _current_page(self, n_pages):
+        if n_pages <= 1 or not self._scroll_seconds:
+            return 0
+        elapsed = time.monotonic() - self._scroll_base
+        return int(elapsed // self._scroll_seconds) % n_pages
 
     def render(self, draw, w, h):
-        title_font = ImageFont.truetype("DejaVuSansMono-Bold", 10)
-        body_font = ImageFont.truetype("DejaVuSansMono-Bold", 10)
+        font = ImageFont.truetype("DejaVuSansMono-Bold", 10)
+
+        items = self._items
+        per_page = self._per_page(font, h)
+        n_pages = max(1, (len(items) + per_page - 1) // per_page) if items else 1
+        page = self._current_page(n_pages)
+
+        # Header: page indicator X/N (top-right) + feed title (left, wrapped
+        # into the width the indicator leaves).
+        indicator = f"{page + 1}/{n_pages}"
+        ind_w = int(draw.textlength(indicator, font=font))
+        draw.text((w - 4 - ind_w, 2), indicator, font=font, fill=0)
 
         header = self._feed_title or "RSS"
-        header_end = draw_wrapped(draw, (4, 2), header, title_font, w - 8,
-                                  line_spacing=0)
+        header_end = draw_wrapped(draw, (4, 2), header, font,
+                                  w - 12 - ind_w, line_spacing=LINE_SPACING)
         underline_y = header_end + 1
         draw.line((4, underline_y, w - 4, underline_y), fill=0)
-        content_top = underline_y + 4
+        content_top = underline_y + 3
 
-        if not self._items:
-            draw_wrapped(draw, (4, content_top), "no items yet",
-                         body_font, w - 8)
+        if not items:
+            draw_wrapped(draw, (4, content_top), "no items yet", font, w - 8,
+                         line_spacing=LINE_SPACING)
             return
 
+        page_items = items[page * per_page:(page + 1) * per_page]
         if self._orientation == "vertical":
-            self._render_columns(draw, body_font, content_top, w, h)
+            self._render_columns(draw, font, content_top, w, h, page_items)
         else:
-            self._render_rows(draw, body_font, content_top, w, h)
+            self._render_rows(draw, font, content_top, w, h, page_items)
 
-    def _render_rows(self, draw, font, top, w, h):
-        # horizontal/rows: headlines stacked top-to-bottom, each wrapped, with a
-        # 1px horizontal rule between consecutive articles.
-        items = self._items[:ROW_ITEMS]
+    def _render_rows(self, draw, font, top, w, h, items):
+        # horizontal/rows: headlines stacked top-to-bottom, each capped at
+        # ROW_MAX_LINES, separated by a 1px rule with a 1px gap either side.
         y = top
         for i, item in enumerate(items):
-            title = item.get("title") or ""
-            y = draw_wrapped(draw, (4, y), title, font, w - 8)
+            lines = _wrap_capped(draw, item.get("title") or "", font,
+                                 w - 8, ROW_MAX_LINES)
+            y = _draw_lines(draw, 4, y, lines, font)
             if i < len(items) - 1:
-                y += 3
+                y += 1
                 draw.line((4, y, w - 4, y), fill=0)
-                y += 4
+                y += 2
             if y >= h:
                 break
 
-    def _render_columns(self, draw, font, top, w, h):
-        # vertical/columns: headlines side-by-side in equal columns, each wrapped
-        # to its column width, with a 1px vertical rule between columns.
-        items = self._items[:COL_ITEMS]
+    def _render_columns(self, draw, font, top, w, h, items):
+        # vertical/columns: headlines side-by-side in equal columns, each
+        # wrapped to its column (capped to the column height), with a 1px
+        # vertical rule between columns.
         n = len(items)
         col_w = (w - 8) // n
+        max_lines = max(1, (h - 2 - top) // _line_h(font))
         for i, item in enumerate(items):
             x = 4 + i * col_w
-            title = item.get("title") or ""
-            # +2 gutter keeps text off the divider rule
-            draw_wrapped(draw, (x + 2, top), title, font, col_w - 6)
+            lines = _wrap_capped(draw, item.get("title") or "", font,
+                                 col_w - 6, max_lines)
+            _draw_lines(draw, x + 2, top, lines, font)
             if i < n - 1:
                 rule_x = x + col_w
                 draw.line((rule_x, top, rule_x, h - 2), fill=0)

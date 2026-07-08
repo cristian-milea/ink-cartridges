@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-07-08T22:52:31Z",
+  "updated_at": "2026-07-08T23:39:06Z",
   "apps": [
     {
       "name": "blackjack",
@@ -120,7 +120,7 @@
         "manifest": "apps/rss/rss.manifest.json",
         "ui": "apps/rss/rss.ui.json"
       },
-      "size_bytes": 8552
+      "size_bytes": 13724
     },
     {
       "name": "tide-sun",

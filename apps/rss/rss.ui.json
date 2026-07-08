@@ -5,18 +5,30 @@
   "children": [
     { "type": "text", "value": "RSS", "style": "headline" },
     { "type": "text", "style": "caption",
-      "value": "Headlines are on the e-ink. Pick a layout, then tap Apply — it takes effect on the next paint." },
+      "value": "Headlines show on the e-ink. Pick a layout and how fast pages auto-scroll, then tap Apply — it takes effect on the next paint." },
     { "type": "select", "local": "orientation", "label": "Layout",
-      "default": "vertical",
+      "default": "{{state.orientation}}",
       "options": [
-        { "value": "vertical",   "label": "Columns (vertical rules)" },
-        { "value": "horizontal", "label": "Rows (horizontal rules)" }
+        { "value": "vertical",   "label": "Columns" },
+        { "value": "horizontal", "label": "Rows" }
       ]
     },
-    { "type": "button", "label": "Apply layout", "style": "primary",
+    { "type": "select", "local": "scroll", "label": "Auto-scroll",
+      "default": "{{state.scroll_seconds}}",
+      "options": [
+        { "value": "0",   "label": "Off" },
+        { "value": "30",  "label": "30s" },
+        { "value": "60",  "label": "1m" },
+        { "value": "120", "label": "2m" },
+        { "value": "300", "label": "5m" }
+      ]
+    },
+    { "type": "button", "label": "Apply", "style": "primary",
       "action": {
         "type": "push",
-        "payload": { "action": "set_layout", "value": "{{local.orientation}}" }
+        "payload": { "action": "set_config",
+                     "orientation": "{{local.orientation}}",
+                     "scroll_seconds": "{{local.scroll}}" }
       }
     }
   ]
