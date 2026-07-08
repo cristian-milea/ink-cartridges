@@ -176,10 +176,18 @@ with a `"type"` field plus type-specific fields.
 | `when`         | `if` (JsonLogic rule), `then` (node or `[]`) | `else` (node or `[]`)             |
 | `dpad`         | at least one of `vertical`/`horizontal`/`diagonal`, `actions` (direction → action) | `center` (action) — requires `schema_version: 2` / `min_app_version: 1.1` |
 
-Template strings (`value`, `label`, `format`, `payload` leaf values, and the
-`data_source.url`) accept `{{state.X}}`, `{{local.X}}`, `{{secret.X}}`, and
-`{{location.lat|lon|label}}` placeholders. Missing keys substitute as empty
-string; missing secret renders a "Set up secret" badge next to the widget.
+Template strings (`value`, `label`, `format`, `payload` leaf values, the
+`select` `default`, and the `data_source.url`) accept `{{state.X}}`,
+`{{local.X}}`, `{{secret.X}}`, and `{{location.lat|lon|label}}` placeholders.
+Missing keys substitute as empty string; missing secret renders a "Set up
+secret" badge next to the widget.
+
+A `select`'s `default` is resolved as a template and then seeds the widget's
+local state, so `default: "{{state.<key>}}"` opens the control pre-selected to
+the device's current value (round-tripped from `published_state`) — the idiom
+for keeping a phone control in sync with the e-ink. Older app builds that
+predate this treat `default` as a literal (no initial highlight), so keep the
+option values themselves stable.
 
 ### Conditional rendering — the `when` widget
 
