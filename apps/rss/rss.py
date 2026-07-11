@@ -9,7 +9,8 @@
 # on_data receives two different shapes and tells them apart by payload keys,
 # not by a fixed schema:
 #   - a *config command* from the ui.json Apply button:
-#       {"action": "set_config", "orientation": "...", "scroll_seconds": "..."}
+#       {"action": "set_config", "orientation": "...", "scroll_seconds": "...",
+#        "feed": "https://..."}
 #     (legacy "set_layout"/"set_scroll" single-field forms also accepted).
 #   - the *sync envelope* above (has "fetched", no "action").
 #
@@ -20,12 +21,18 @@
 # page is derived from the wall clock, so any repaint (auto-tick, push, banner)
 # shows the page the elapsed time selects — no per-render mutation to get wrong.
 #
+# Feed source: the feed URL is user-configurable from the phone (a plain text
+# field, not a secret). The chosen URL is surfaced back to the phone via
+# published_state as {{state.feed_url}}, and the manifest's data_source.url is
+# "{{state.feed_url}}" — so the phone fetches whatever feed the device holds.
+# Defaults to Hacker News so the cartridge works out of the box.
+#
 # Settings persistence: the host only remembers the LAST payload it pushed per
 # app and replays that single slot on reboot, so we can't rely on it to hold
-# both the feed AND the chosen orientation/scroll. Orientation + scroll are
-# self-persisted to a small JSON sidecar here; feed items are transient
-# (re-synced from the network) — whichever the replayed payload happens to be
-# repopulates, the other is read from the sidecar.
+# the feed URL AND orientation/scroll. All three are self-persisted to a small
+# JSON sidecar here; feed *items* are transient (re-synced from the network) —
+# whichever the replayed payload happens to be repopulates, the rest are read
+# from the sidecar.
 
 import json
 import os
@@ -47,29 +54,45 @@ LINE_SPACING = -1         # tighten line height for density (#3)
 DEFAULT_SCROLL_SECONDS = 60
 SCROLL_CHOICES = (0, 30, 60, 120, 300)   # allowed auto-scroll periods (0 = off)
 
+DEFAULT_FEED = "https://hnrss.org/frontpage"   # works out of the box; user-overridable
+
 SIDECAR = os.path.join(os.path.expanduser("~"), ".ink-cartridge-rss.json")
 
 
+def _coerce_feed(value):
+    """Accept a non-empty http(s) URL string; return it stripped, else None."""
+    if not isinstance(value, str):
+        return None
+    url = value.strip()
+    if url.startswith(("http://", "https://")):
+        return url
+    return None
+
+
 def _load_settings():
-    orientation, scroll = "vertical", DEFAULT_SCROLL_SECONDS
+    orientation, scroll, feed = "vertical", DEFAULT_SCROLL_SECONDS, DEFAULT_FEED
     try:
         with open(SIDECAR, encoding="utf-8") as f:
             data = json.load(f)
     except Exception:
-        return orientation, scroll
+        return orientation, scroll, feed
     if isinstance(data, dict):
         if data.get("orientation") in ("vertical", "horizontal"):
             orientation = data["orientation"]
         s = data.get("scroll_seconds")
         if isinstance(s, int) and s in SCROLL_CHOICES:
             scroll = s
-    return orientation, scroll
+        f = _coerce_feed(data.get("feed"))
+        if f is not None:
+            feed = f
+    return orientation, scroll, feed
 
 
-def _save_settings(orientation, scroll):
+def _save_settings(orientation, scroll, feed):
     try:
         with open(SIDECAR, "w", encoding="utf-8") as f:
-            json.dump({"orientation": orientation, "scroll_seconds": scroll}, f)
+            json.dump({"orientation": orientation, "scroll_seconds": scroll,
+                       "feed": feed}, f)
     except Exception:
         pass
 
@@ -159,27 +182,30 @@ def _draw_lines(draw, x, y, lines, font):
 class Rss:
     name = "rss"
     icon = "RS"
-    version = "1.1.0"
+    version = "1.2.0"
 
     def __init__(self):
         self._items = []
         self._feed_title = ""
-        orientation, scroll = _load_settings()
+        orientation, scroll, feed = _load_settings()
         self._orientation = orientation
         self._scroll_seconds = scroll
+        self._feed_url = feed
         # Drives the host's repaint cadence for auto-scroll; None = push-driven.
         self.interval_seconds = scroll or None
         self._scroll_base = time.monotonic()
 
     def published_state(self):
-        # orientation/scroll_seconds are surfaced so the phone controls can
-        # pre-select the device's current values ({{state.x}} in ui.json).
+        # orientation/scroll_seconds/feed_url are surfaced so the phone controls
+        # can pre-select the device's current values ({{state.x}} in ui.json),
+        # and so data_source.url = "{{state.feed_url}}" fetches the chosen feed.
         # scroll_seconds is a string to match the select option values.
         return {
             "feed_title": self._feed_title,
             "item_count": len(self._items),
             "orientation": self._orientation,
             "scroll_seconds": str(self._scroll_seconds),
+            "feed_url": self._feed_url,
         }
 
     def on_data(self, payload):
@@ -226,9 +252,18 @@ class Rss:
             self.interval_seconds = scroll or None
             changed = True
 
+        feed = _coerce_feed(payload.get("feed"))
+        if feed is not None and feed != self._feed_url:
+            self._feed_url = feed
+            # Drop the old feed's items so the screen doesn't show stale content
+            # from a different source until the next sync fetches the new URL.
+            self._items = []
+            self._feed_title = ""
+            changed = True
+
         if changed:
             self._scroll_base = time.monotonic()
-            _save_settings(self._orientation, self._scroll_seconds)
+            _save_settings(self._orientation, self._scroll_seconds, self._feed_url)
 
     def _per_page(self, font, h):
         if self._orientation == "vertical":

@@ -1,11 +1,11 @@
 {
   "name": "rss",
   "icon": "RS",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "author": "cristian-milea",
-  "description": "Latest Hacker News headlines on the e-ink.",
-  "category": "utilities",
-  "long_description": "Shows the latest Hacker News front-page headlines on the e-ink, fetched directly (no third-party proxy) and parsed on-device. Choose a vertical or horizontal headline layout from the phone. A user-configurable feed URL is planned for a future version.",
+  "description": "Read any RSS or Atom feed on the e-ink.",
+  "category": "reference",
+  "long_description": "A general RSS/Atom reader for the e-ink. Set any feed URL from the phone (defaults to Hacker News) — the feed is fetched directly (no third-party proxy) and parsed on-device. Choose a columns or rows headline layout and paginated auto-scroll. Some hosts block default User-Agents, and iOS may block plain-http feeds; prefer https.",
   "requires": {
     "permissions": [],
     "secrets": []
@@ -13,7 +13,7 @@
   "data_source": {
     "type": "http",
     "method": "GET",
-    "url": "https://hnrss.org/frontpage",
+    "url": "{{state.feed_url}}",
     "format": "xml",
     "needs": [],
     "min_sync_seconds": 600

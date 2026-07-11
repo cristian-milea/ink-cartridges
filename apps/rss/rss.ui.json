@@ -5,7 +5,9 @@
   "children": [
     { "type": "text", "value": "RSS", "style": "headline" },
     { "type": "text", "style": "caption",
-      "value": "Headlines show on the e-ink. Pick a layout and how fast pages auto-scroll, then tap Apply — it takes effect on the next paint." },
+      "value": "Reads any RSS or Atom feed on the e-ink. Set the feed URL, pick a layout and how fast pages auto-scroll, then tap Apply — it takes effect on the next sync." },
+    { "type": "text_field", "local": "feed", "label": "Feed URL",
+      "default": "{{state.feed_url}}" },
     { "type": "select", "local": "orientation", "label": "Layout",
       "default": "{{state.orientation}}",
       "options": [
@@ -27,6 +29,7 @@
       "action": {
         "type": "push",
         "payload": { "action": "set_config",
+                     "feed": "{{local.feed}}",
                      "orientation": "{{local.orientation}}",
                      "scroll_seconds": "{{local.scroll}}" }
       }
