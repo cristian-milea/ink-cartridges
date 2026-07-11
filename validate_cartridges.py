@@ -27,8 +27,14 @@ PERMISSIONS = {"location", "notifications", "network"}  # runtime allowlist
 WIDGET_TYPES = {
     "column", "row", "spacer", "divider", "text", "state_text", "image",
     "chart", "button", "switch", "slider", "text_field", "select", "when",
+    "dpad",
 }
 ACTION_TYPES = {"push", "sync", "set_local", "request_permission"}
+DPAD_DIRECTIONS = {
+    "up", "down", "left", "right",
+    "up_left", "up_right", "down_left", "down_right",
+}
+SCHEMA_VERSIONS = {1, 2}
 MAX_PACKAGE_BYTES = 256 * 1024  # device install cap, summed across files
 REQUIRED_FIELDS = ("name", "icon", "version", "author", "description")
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")  # hyphenated manifest name
@@ -102,6 +108,21 @@ def _validate_ui_node(node, errors, path="ui"):
                 items = node[branch] if isinstance(node[branch], list) else [node[branch]]
                 for i, c in enumerate(items):
                     _validate_ui_node(c, errors, f"{path}.{branch}[{i}]")
+    elif t == "dpad":
+        if not any(node.get(axis) for axis in ("vertical", "horizontal", "diagonal")):
+            errors.append(f"{path}: dpad requires at least one of vertical/horizontal/diagonal to be true")
+        actions = node.get("actions", {})
+        if not isinstance(actions, dict):
+            errors.append(f"{path}.actions must be an object")
+        else:
+            bad_keys = set(actions) - DPAD_DIRECTIONS
+            if bad_keys:
+                errors.append(f"{path}.actions has unknown direction keys {sorted(bad_keys)}; allowed: {sorted(DPAD_DIRECTIONS)}")
+            for key, action in actions.items():
+                if key in DPAD_DIRECTIONS:
+                    _validate_action(action, errors, f"{path}.actions.{key}")
+        if "center" in node:
+            _validate_action(node["center"], errors, f"{path}.center")
 
 
 def _validate_secrets(secrets, errors):
@@ -186,8 +207,8 @@ def validate_cartridge(directory):
     for opt in ("homepage", "license", "long_description"):
         if opt in manifest and not isinstance(manifest[opt], str):
             errors.append(f"manifest.{opt} must be a string")
-    if "schema_version" in manifest and manifest["schema_version"] != 1:
-        errors.append("schema_version must be 1")
+    if "schema_version" in manifest and manifest["schema_version"] not in SCHEMA_VERSIONS:
+        errors.append(f"schema_version must be one of {sorted(SCHEMA_VERSIONS)}")
 
     req = manifest.get("requires")
     if req is not None:

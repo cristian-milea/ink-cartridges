@@ -82,6 +82,7 @@ URL's directory**. The phone resolves them with standard URL joining.
       "icon_url":          "apps/weather/icon.png",        // present only if icon.png exists
       "screenshots":       [],                             // optional, array of URLs
       "min_host_schema":   1,                              // optional, host schema floor
+      "min_app_version":   "1.1",                          // floor on the companion app version
       "files": {
         "py":       "apps/weather/weather.py",
         "manifest": "apps/weather/weather.manifest.json",
@@ -119,6 +120,15 @@ URL's directory**. The phone resolves them with standard URL joining.
   to avoid uploading a stray binary.
 - `files.ui` is optional. Absent = the device still gets the .py +
   manifest; on the phone, the launcher shows the default panel.
+- `min_app_version` is a `>=` floor (semver) on the *companion app's own*
+  version, not the device — it's the answer to "can this phone's app render
+  this cartridge's `ui.json`?" (new widget types are invisible to older app
+  builds, since the phone — not the device — parses `ui.json`). The generator
+  stamps it from the manifest's `schema_version` via a fixed table (see
+  `ink-cartridge-ui-schema.md`'s "schema_version → min_app_version"); a
+  manifest may also set `min_app_version` explicitly, which wins over the
+  table. Unlike `version` (compared with strict `>` for the update badge),
+  this is a floor: an app newer than the floor is always compatible.
 
 ### URL resolution
 
@@ -137,6 +147,14 @@ On Browse refresh, the phone:
 3. Sets an "Update available" badge on the launcher icon and in Browse.
 
 No automatic updates. The user must tap Update — same pipeline as Install.
+
+**`min_app_version` gate.** Before offering Install/Update for a catalog
+entry, the phone also checks `min_app_version` against its own app version.
+If the installed companion app is older than the entry's floor, Install/Update
+is disabled and Browse shows "Requires app {min_app_version}+ — update"
+instead of the action button. This is independent of the version-compare
+above: a cartridge can be a *newer* version than what's installed and still be
+blocked, if the phone's app itself hasn't been updated far enough to render it.
 
 ## Failure modes
 

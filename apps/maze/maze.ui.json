@@ -7,18 +7,13 @@
     { "type": "text", "style": "caption",
       "value": "First-person crawler. Phone is the D-pad, e-ink is the view. Find the exit in the fewest steps." },
 
-    { "type": "row", "spacing": 8, "align": "center", "children": [
-      { "type": "button", "label": "←", "style": "secondary",
-        "action": { "type": "push", "payload": { "action": "turn_left" } } },
-      { "type": "column", "spacing": 8, "children": [
-        { "type": "button", "label": "↑", "style": "primary",
-          "action": { "type": "push", "payload": { "action": "forward" } } },
-        { "type": "button", "label": "↓", "style": "secondary",
-          "action": { "type": "push", "payload": { "action": "back" } } }
-      ] },
-      { "type": "button", "label": "→", "style": "secondary",
-        "action": { "type": "push", "payload": { "action": "turn_right" } } }
-    ] },
+    { "type": "dpad", "vertical": true, "horizontal": true,
+      "actions": {
+        "up":    { "type": "push", "payload": { "action": "forward" } },
+        "down":  { "type": "push", "payload": { "action": "back" } },
+        "left":  { "type": "push", "payload": { "action": "turn_left" } },
+        "right": { "type": "push", "payload": { "action": "turn_right" } }
+      } },
 
     { "type": "divider" },
 

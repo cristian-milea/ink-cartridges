@@ -942,7 +942,6 @@ MAX_SOURCE_BYTES = 256 * 1024
 # Manifest/UI sidecars: <stem>.manifest.json + <stem>.ui.json sit next to
 # <stem>.py in the cartridges dir.
 ALLOWED_PERMISSIONS = frozenset({"location", "notifications", "network"})
-SUPPORTED_SCHEMA_VERSION = 1
 
 
 # ---------------------------------------------------------------------------
@@ -1111,9 +1110,16 @@ def validate_manifest(manifest, app_name):
         # The file system prefers underscores (Python module names); the
         # manifest's display name uses hyphens. Treat them as equivalent.
         return False, f"manifest.name {name!r} != app.name {app_name!r}"
+    # schema_version tracks the *UI* schema (which widgets ui.json uses). The
+    # device never interprets ui.json widgets — it serves the file opaquely and
+    # the phone renders it, gating widgets it's too old for via min_app_version
+    # (see validate_ui's note). So a schema_version newer than any this plugin
+    # has seen is fine to accept: reject only a malformed (non-int / non-positive)
+    # value, never a higher one — otherwise every new UI widget would need a
+    # plugin redeploy to every device.
     schema = manifest.get("schema_version", 1)
-    if not isinstance(schema, int) or schema > SUPPORTED_SCHEMA_VERSION:
-        return False, f"unsupported schema_version: {schema}"
+    if not isinstance(schema, int) or isinstance(schema, bool) or schema < 1:
+        return False, f"invalid schema_version: {schema!r}"
     requires = manifest.get("requires") or {}
     if not isinstance(requires, dict):
         return False, "requires must be an object"

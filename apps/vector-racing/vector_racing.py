@@ -544,7 +544,7 @@ def _compute_optimum(grid, start_xy, start_tan, gates, k, target_laps,
 class VectorRacing:
     name = "vector-racing"
     icon = "VR"
-    version = "1.1.0"
+    version = "1.1.1"
 
     interval_seconds = None
 
