@@ -1148,6 +1148,7 @@ def validate_manifest(manifest, app_name):
 
 ALLOWED_DATA_SOURCE_TYPES = frozenset({"http"})
 ALLOWED_DATA_SOURCE_METHODS = frozenset({"GET", "POST"})
+ALLOWED_DATA_SOURCE_FORMATS = frozenset({"json", "xml"})
 
 
 def _validate_data_source(ds):
@@ -1165,6 +1166,8 @@ def _validate_data_source(ds):
     needs = ds.get("needs", [])
     if not isinstance(needs, list) or not all(isinstance(n, str) for n in needs):
         return False, "'needs' must be a list of strings"
+    if "format" in ds and ds["format"] not in ALLOWED_DATA_SOURCE_FORMATS:
+        return False, f"unknown format: {ds['format']!r} (allowed: {sorted(ALLOWED_DATA_SOURCE_FORMATS)})"
     return True, ""
 
 

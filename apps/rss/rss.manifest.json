@@ -1,0 +1,22 @@
+{
+  "name": "rss",
+  "icon": "RS",
+  "version": "1.2.0",
+  "author": "cristian-milea",
+  "description": "Read any RSS or Atom feed on the e-ink.",
+  "category": "reference",
+  "long_description": "A general RSS/Atom reader for the e-ink. Set any feed URL from the phone (defaults to Hacker News) — the feed is fetched directly (no third-party proxy) and parsed on-device. Choose a columns or rows headline layout and paginated auto-scroll. Some hosts block default User-Agents, and iOS may block plain-http feeds; prefer https.",
+  "requires": {
+    "permissions": [],
+    "secrets": []
+  },
+  "data_source": {
+    "type": "http",
+    "method": "GET",
+    "url": "{{state.feed_url}}",
+    "format": "xml",
+    "needs": [],
+    "min_sync_seconds": 600
+  },
+  "schema_version": 1
+}

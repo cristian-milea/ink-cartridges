@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-07-06T00:29:38Z",
+  "updated_at": "2026-07-11T17:12:40Z",
   "apps": [
     {
       "name": "blackjack",
@@ -101,6 +101,26 @@
         "ui": "apps/ricochet-robots/ricochet_robots.ui.json"
       },
       "size_bytes": 37612
+    },
+    {
+      "name": "rss",
+      "icon": "RS",
+      "version": "1.2.0",
+      "author": "cristian-milea",
+      "description": "Read any RSS or Atom feed on the e-ink.",
+      "long_description": "A general RSS/Atom reader for the e-ink. Set any feed URL from the phone (defaults to Hacker News) — the feed is fetched directly (no third-party proxy) and parsed on-device. Choose a columns or rows headline layout and paginated auto-scroll. Some hosts block default User-Agents, and iOS may block plain-http feeds; prefer https.",
+      "category": "reference",
+      "requires": {
+        "permissions": [],
+        "secrets": []
+      },
+      "min_app_version": "1.0",
+      "files": {
+        "py": "apps/rss/rss.py",
+        "manifest": "apps/rss/rss.manifest.json",
+        "ui": "apps/rss/rss.ui.json"
+      },
+      "size_bytes": 15459
     },
     {
       "name": "tide-sun",

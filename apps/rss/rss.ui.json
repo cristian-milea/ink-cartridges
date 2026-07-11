@@ -1,0 +1,38 @@
+{
+  "type": "column",
+  "padding": 16,
+  "spacing": 12,
+  "children": [
+    { "type": "text", "value": "RSS", "style": "headline" },
+    { "type": "text", "style": "caption",
+      "value": "Reads any RSS or Atom feed on the e-ink. Set the feed URL, pick a layout and how fast pages auto-scroll, then tap Apply — it takes effect on the next sync." },
+    { "type": "text_field", "local": "feed", "label": "Feed URL",
+      "default": "{{state.feed_url}}" },
+    { "type": "select", "local": "orientation", "label": "Layout",
+      "default": "{{state.orientation}}",
+      "options": [
+        { "value": "vertical",   "label": "Columns" },
+        { "value": "horizontal", "label": "Rows" }
+      ]
+    },
+    { "type": "select", "local": "scroll", "label": "Auto-scroll",
+      "default": "{{state.scroll_seconds}}",
+      "options": [
+        { "value": "0",   "label": "Off" },
+        { "value": "30",  "label": "30s" },
+        { "value": "60",  "label": "1m" },
+        { "value": "120", "label": "2m" },
+        { "value": "300", "label": "5m" }
+      ]
+    },
+    { "type": "button", "label": "Apply", "style": "primary",
+      "action": {
+        "type": "push",
+        "payload": { "action": "set_config",
+                     "feed": "{{local.feed}}",
+                     "orientation": "{{local.orientation}}",
+                     "scroll_seconds": "{{local.scroll}}" }
+      }
+    }
+  ]
+}

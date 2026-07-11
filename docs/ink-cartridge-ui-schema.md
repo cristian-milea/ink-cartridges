@@ -176,10 +176,18 @@ with a `"type"` field plus type-specific fields.
 | `when`         | `if` (JsonLogic rule), `then` (node or `[]`) | `else` (node or `[]`)             |
 | `dpad`         | at least one of `vertical`/`horizontal`/`diagonal`, `actions` (direction → action) | `center` (action) — requires `schema_version: 2` / `min_app_version: 1.1` |
 
-Template strings (`value`, `label`, `format`, `payload` leaf values, and the
-`data_source.url`) accept `{{state.X}}`, `{{local.X}}`, `{{secret.X}}`, and
-`{{location.lat|lon|label}}` placeholders. Missing keys substitute as empty
-string; missing secret renders a "Set up secret" badge next to the widget.
+Template strings (`value`, `label`, `format`, `payload` leaf values, the
+`select` `default`, and the `data_source.url`) accept `{{state.X}}`,
+`{{local.X}}`, `{{secret.X}}`, and `{{location.lat|lon|label}}` placeholders.
+Missing keys substitute as empty string; missing secret renders a "Set up
+secret" badge next to the widget.
+
+A `select`'s `default` is resolved as a template and then seeds the widget's
+local state, so `default: "{{state.<key>}}"` opens the control pre-selected to
+the device's current value (round-tripped from `published_state`) — the idiom
+for keeping a phone control in sync with the e-ink. Older app builds that
+predate this treat `default` as a literal (no initial highlight), so keep the
+option values themselves stable.
 
 ### Conditional rendering — the `when` widget
 
@@ -304,6 +312,9 @@ Fields:
 - `type`: only `"http"` for now.
 - `url`: full URL. Placeholders resolved before fetch.
 - `method`: `"GET"` (default) — POST is reserved for a future revision.
+- `format`: `"json"` (default) or `"xml"`. With `"xml"` the fetched body is
+  delivered to `on_data` as a raw string for the app to parse device-side
+  (e.g. with stdlib `xml.etree.ElementTree`) instead of being JSON-decoded.
 - `needs`: declarative input hints (`"location"`, `"secret:<name>"`). The
   phone refuses to sync if a need can't be satisfied.
 - `auto_sync` *(optional, default `true`)*: when `false` the app is
@@ -324,6 +335,13 @@ Envelope shape the device receives (in `on_data`):
 { "location": {"lat": 50.82, "lon": -0.14, "label": "Brighton, UK"} | null,
   "fetched": <raw response body as JSON> | null }
 ```
+With `data_source.format:"xml"`, `fetched` arrives as a raw XML string instead
+of a parsed JSON value — the app parses it itself.
+
+A cartridge that both accepts commands (e.g. from a `ui.json` button/select)
+and syncs data tells the two `on_data` calls apart by inspecting payload keys
+(e.g. a command payload has an `"action"` key; the sync envelope has
+`"location"`/`"fetched"`) rather than assuming a single fixed shape.
 
 ## published_state — what the phone reads back
 
